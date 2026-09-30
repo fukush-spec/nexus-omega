@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>NEXUS // OMEGA</title>
+  <style>
+    :root {
+      --bg: #02070b;
+      --bg-2: #04131c;
+      --bg-3: #071f2a;
+      --panel: rgba(6, 18, 28, 0.78);
+      --panel-2: rgba(9, 28, 38, 0.8);
+      --cyan: #62efff;
+      --cyan-2: #1ee3ff;
+      --green: #75ffb2;
+      --lime: #a7ff8a;
+      --blue: #46a9ff;
+      --violet: #9d6cff;
+      --pink: #ff57d8;
+      --red: #ff4d5c;
+      --amber: #ffca63;
+      --text: #dffcff;
+      --muted: #7da4b6;
+      --line: rgba(100, 235, 255, 0.24);
+      --shadow-cyan: 0 0 18px rgba(96, 239, 255, 0.65);
+      --shadow-pink: 0 0 18px rgba(255, 87, 216, 0.5);
+      --radius: 18px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "SF Pro Display", "Hiragino Sans", "Noto Sans JP", "Meiryo", sans-serif;
+    }
+
+    body {
+      position: relative;
+      background:
+        radial-gradient(circle at center, rgba(30, 132, 235, 0.08), transparent 35%),
+        radial-gradient(circle at 20% 20%, rgba(0, 255, 180, 0.05), transparent 30%),
+        linear-gradient(180deg, #01070d, #020b12 35%, #030d15);
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.92; }
+      65% { opacity: 0.74; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 18px rgba(98, 239, 255, 0.4); }
+      50% { transform: scale(1.05); box-shadow: 0 0 34px rgba(98, 239, 255, 0.85); }
+    }
+
+    @keyframes pulse2 {
+      0%, 100% { transform: scale(0.96); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+
+    @keyframes spinSlow { to { transform: rotate(360deg); } }
+    @keyframes spinReverse { to { transform: rotate(-360deg); } }
+    @keyframes floatOpacity { 0% { opacity: 0; transform: translateY(12px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-12px); } }
+    @keyframes scanlineMove { 0% { transform: translateY(-18px); } 100% { transform: translateY(18px); } }
+    @keyframes shutter { 0% { opacity: 0; transform: scaleY(0.9); } 15% { opacity: 1; } 60% { opacity: 0.7; } 100% { opacity: 0; transform: scaleY(1); } }
+    @keyframes radarWave { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(1.44); opacity: 0; } }
+    @keyframes textGlitch {
+      0%, 100% { transform: translate(0, 0); text-shadow: 0 0 10px rgba(98, 239, 255, 0.75); }
+      20% { transform: translate(-1px, 1px); text-shadow: 1px 0 rgba(255, 87, 216, 0.7), -1px 0 rgba(98, 239, 255, 0.7); }
+      40% { transform: translate(1px, -1px); }
+      60% { transform: translate(-1px, 0); }
+      80% { transform: translate(1px, 1px); }
+    }
+
+    @keyframes signalSpike {
+      0% { width: 0; opacity: 0; }
+      30% { width: 100%; opacity: 1; }
+      100% { width: 100%; opacity: 0; }
+    }
+
+    @keyframes bootStatusBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+
+    ::selection {
+      background: rgba(98, 239, 255, 0.35);
+      color: #fff;
+    }
+
+    #matrixCanvas, #fxCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    #fxCanvas { z-index: 2; }
+
+    .scanlines,
+    .vignette,
+    .noise,
+    .grid {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .scanlines {
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.025),
+        rgba(255,255,255,0.025) 1px,
+        transparent 2px,
+        transparent 5px
+      );
+      mix-blend-mode: screen;
+      animation: scanlineMove 10s linear infinite alternate;
+    }
+
+    .vignette {
+      background: radial-gradient(circle at center, transparent 42%, rgba(0,0,0,0.72) 100%);
+    }
+
+    .noise {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03), rgba(255,255,255,0.03)),
+        radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 0);
+      background-size: 100% 100%, 8px 8px;
+      opacity: 0.15;
+      animation: flicker 0.18s infinite step-end;
+    }
+
+    .grid {
+      background-image:
+        linear-gradient(rgba(98, 239, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(98, 239, 255, 0.05) 1px, transparent 1px);
+      background-size: 26px 26px;
+      mask-image: radial-gradient(circle at center, rgba(0,0,0,0.85), transparent 90%);
+      opacity: 0.28;
+    }
+
+    .intro-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 40;
+      transition: opacity 1s ease, visibility 1s ease;
+    }
+
+    .intro-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .intro-shell {
+      position: relative;
+      width: min(760px, 82vw);
+      height: min(520px, 62vh);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(98, 239, 255, 0.34);
+      background: radial-gradient(circle at center, rgba(17, 34, 48, 0.76), rgba(2, 8, 12, 0.95));
+      box-shadow: 0 0 45px rgba(98, 239, 255, 0.13), inset 0 0 80px rgba(98, 239, 255, 0.06);
+      overflow: hidden;
+    }
+
+    .intro-shell::before,
+    .intro-shell::after {
+      content: "";
+      position: absolute;
+      inset: 22px;
+      border: 1px solid rgba(98, 239, 255, 0.14);
+      pointer-events: none;
+    }
+
+    .intro-shell::after {
+      inset: auto 30px 30px 30px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(98, 239, 255, 0.7), transparent);
+      border: none;
+    }
+
+    .intro-core {
+      position: relative;
+      width: min(230px, 36vw);
+      height: min(230px, 36vw);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(98, 239, 255, 0.52);
+      box-shadow: 0 0 25px rgba(98, 239, 255, 0.35), inset 0 0 30px rgba(98, 239, 255, 0.08);
+      animation: pulse 3s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(98, 239, 255, 0.09), rgba(7, 17, 29, 0.9) 56%, rgba(4, 10, 18, 0.96));
+    }
+
+    .intro-core::before,
+    .intro-core::after {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border-radius: 50%;
+      border: 1px dashed rgba(98, 239, 255, 0.32);
+      animation: spinSlow 12s linear infinite;
+    }
+
+    .intro-core::after {
+      inset: 42px;
+      border-style: solid;
+      border-color: rgba(255, 87, 216, 0.22);
+      animation: spinReverse 7s linear infinite;
+    }
+
+    .intro-core-inner {
+      width: 22%;
+      height: 22%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(98,239,255,1) 18%, rgba(21, 122, 255, 0.9) 42%, rgba(13, 18, 26, 0) 70%);
+      box-shadow: 0 0 18px rgba(98, 239, 255, 0.8);
+      animation: pulse2 2.4s ease-in-out infinite;
+    }
+
+    .intro-title {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-weight: 900;
+      letter-spacing: 0.34em;
+      font-size: clamp(18px, 2.5vw, 32px);
+      width: 100%;
+      color: rgba(98, 239, 255, 0.85);
+      text-shadow: 0 0 15px rgba(98, 239, 255, 0.7);
+      animation: textGlitch 3s ease-in-out infinite;
+      opacity: 0.82;
+    }
+
+    .intro-sub {
+      position: absolute;
+      left: 50%;
+      bottom: 60px;
+      transform: translateX(-50%);
+      color: rgba(112, 164, 183, 0.98);
+      font-size: 11px;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .login-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+      background: linear-gradient(180deg, rgba(1, 7, 12, 0.92), rgba(1, 13, 20, 0.92));
+    }
+
+    .login-screen.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .login-shell {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+
+    .login-panel {
+      position: relative;
+      width: min(660px, 90vw);
+      padding: 30px 28px 22px;
+      border: 1px solid rgba(98, 239, 255, 0.3);
+      background: linear-gradient(145deg, rgba(8, 19, 26, 0.82), rgba(2, 8, 14, 0.78));
+      box-shadow: 0 0 50px rgba(98, 239, 255, 0.12), inset 0 0 50px rgba(98, 239, 255, 0.04);
+      overflow: hidden;
+    }
+
+    .login-panel::before,
+    .login-panel::after {
+      content: "";
+      position: absolute;
+      left: 16px; right: 16px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(98, 239, 255, 0.9), transparent);
+    }
+
+    .login-panel::before { top: 10px; }
+    .login-panel::after { bottom: 10px; }
+
+    .login-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      letter-spacing: 0.22em;
+      color: var(--cyan);
+      font-size: 12px;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(98, 239, 255, 0.7);
+    }
+
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(117, 255, 178, 0.85);
+      animation: bootStatusBlink 1.4s ease-in-out infinite;
+    }
+
+    .login-status {
+      font-size: 10px;
+      letter-spacing: 0.28em;
+      color: var(--muted);
+      opacity: 0.85;
+      text-transform: uppercase;
+    }
+
+    .login-body {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 22px;
+    }
+
+    .sys-identity {
+      position: relative;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-right: 1px solid rgba(98, 239, 255, 0.12);
+      padding-right: 18px;
+    }
+
+    .sys-main {
+      font-size: clamp(26px, 4vw, 52px);
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.05em;
+      color: var(--text);
+      text-shadow: 0 0 18px rgba(98, 239, 255, 0.4);
+      margin-bottom: 10px;
+    }
+
+    .sys-main .accent {
+      display: block;
+      color: var(--cyan);
+    }
+
+    .sys-sub {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.32em;
+      font-size: 10px;
+      margin-bottom: 20px;
+    }
+
+    .hud-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(100px, 1fr));
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .hud-item {
+      border: 1px solid rgba(98, 239, 255, 0.12);
+      background: rgba(98, 239, 255, 0.03);
+      padding: 10px 12px;
+    }
+
+    .hud-label {
+      display: block;
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .hud-value {
+      color: var(--cyan);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .auth-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .auth-title {
+      margin-bottom: 18px;
+      font-size: 11px;
+      letter-spacing: 0.34em;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+
+    .tab-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .tab-btn {
+      appearance: none;
+      border: 1px solid rgba(98, 239, 255, 0.24);
+      background: rgba(98, 239, 255, 0.04);
+      color: var(--muted);
+      padding: 10px 12px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .tab-btn.active {
+      border-color: rgba(98, 239, 255, 0.8);
+      background: rgba(98, 239, 255, 0.12);
+      color: var(--text);
+      box-shadow: 0 0 12px rgba(98, 239, 255, 0.20);
+    }
+
+    .form-wrap {
+      display: none;
+    }
+
+    .form-wrap.active {
+      display: block;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+    }
+
+    .field input {
+      width: 100%;
+      border: 1px solid rgba(98, 239, 255, 0.22);
+      background: rgba(98, 239, 255, 0.04);
+      padding: 12px 14px;
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .field input::placeholder { color: rgba(125, 164, 182, 0.6); }
+    .field input:focus {
+      border-color: rgba(98, 239, 255, 0.8);
+      box-shadow: 0 0 13px rgba(98, 239, 255, 0.2), inset 0 0 15px rgba(98, 239, 255, 0.04);
+    }
+
+    .strength {
+      height: 6px;
+      background: rgba(98, 239, 255, 0.06);
+      border: 1px solid rgba(98, 239, 255, 0.12);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .strength-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff4d4d, #ffc857, #75ffb2);
+      transition: width 0.25s ease;
+      box-shadow: 0 0 12px rgba(117, 255, 178, 0.45);
+    }
+
+    .message-box {
+      margin: 14px 0 10px;
+      padding: 10px 12px;
+      font-size: 10px;
+      line-height: 1.7;
+      border-left: 2px solid rgba(98, 239, 255, 0.7);
+      background: rgba(98, 239, 255, 0.04);
+      color: var(--muted);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .primary-btn,
+    .ghost-btn,
+    .danger-btn {
+      appearance: none;
+      border: 1px solid rgba(98, 239, 255, 0.42);
+      background: rgba(98, 239, 255, 0.06);
+      color: var(--text);
+      padding: 12px 14px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .primary-btn::before,
+    .ghost-btn::before,
+    .danger-btn::before {
+      content: "";
+      position: absolute;
+      left: -120%;
+      top: 0;
+      width: 120%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(98, 239, 255, 0.26), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .primary-btn:hover::before,
+    .ghost-btn:hover::before,
+    .danger-btn:hover::before { left: 120%; }
+
+    .primary-btn:hover,
+    .ghost-btn:hover,
+    .danger-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 16px rgba(98, 239, 255, 0.12);
+    }
+
+    .primary-btn {
+      border-color: rgba(98, 239, 255, 0.8);
+      background: linear-gradient(180deg, rgba(40, 120, 255, 0.12), rgba(98, 239, 255, 0.06));
+      color: var(--cyan);
+    }
+
+    .ghost-btn {
+      border-color: rgba(255, 87, 216, 0.42);
+      background: rgba(255, 87, 216, 0.04);
+      color: #fbd7ff;
+    }
+
+    .danger-btn {
+      border-color: rgba(255, 77, 92, 0.52);
+      background: rgba(255, 77, 92, 0.06);
+      color: #ffc0c6;
+    }
+
+    .google-btn {
+      width: 100%;
+      margin-top: 12px;
+      border-color: rgba(66, 133, 244, 0.7);
+      background: rgba(66, 133, 244, 0.08);
+      color: #b8d3ff;
+    }
+
+    .boot-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+      background: linear-gradient(180deg, rgba(1, 8, 12, 0.6), rgba(1, 8, 12, 0.9));
+    }
+
+    .boot-screen.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .boot-shell {
+      position: absolute;
+      inset: calc(var(--safe-top) + 8px) 12px calc(var(--safe-bottom) + 8px) 12px;
+      border: 1px solid rgba(98, 239, 255, 0.28);
+      background: linear-gradient(140deg, rgba(5, 20, 27, 0.88), rgba(2, 8, 12, 0.9));
+      box-shadow: 0 0 40px rgba(98, 239, 255, 0.12), inset 0 0 36px rgba(98, 239, 255, 0.04);
+      overflow: hidden;
+    }
+
+    .boot-shell::before,
+    .boot-shell::after {
+      content: "";
+      position: absolute;
+      left: 22px; right: 22px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(98, 239, 255, 0.8), transparent);
+    }
+
+    .boot-shell::before { top: 10px; }
+    .boot-shell::after { bottom: 10px; }
+
+    .topbar {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(98, 239, 255, 0.15);
+      background: linear-gradient(90deg, rgba(98, 239, 255, 0.04), transparent 30%, rgba(98, 239, 255, 0.02));
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      font-size: 12px;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+
+    .brand-block .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 14px rgba(117, 255, 178, 0.9);
+      animation: bootStatusBlink 1.3s infinite;
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-pill .light {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(117, 255, 178, 0.9);
+    }
+
+    .boot-main {
+      display: grid;
+      grid-template-columns: 1.28fr 0.72fr;
+      gap: 22px;
+      height: calc(100% - 58px);
+      padding: 24px 18px 18px;
+    }
+
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .eyebrow {
+      color: var(--cyan);
+      letter-spacing: 0.3em;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .title-lab {
+      font-weight: 900;
+      line-height: 0.84;
+      letter-spacing: -0.06em;
+      font-size: clamp(36px, 5vw, 76px);
+      color: var(--text);
+      text-shadow: 0 0 24px rgba(98, 239, 255, 0.46);
+      margin-bottom: 12px;
+    }
+
+    .title-lab .accent {
+      display: block;
+      color: var(--cyan);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      letter-spacing: 0.28em;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .core-stage {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-height: 260px;
+      margin: 5px 0 15px;
+    }
+
+    .core-ring, .core-ring2, .core-ring3, .core-ring4 {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .core-ring {
+      width: 240px; height: 240px;
+      border: 1px solid rgba(98, 239, 255, 0.72);
+      box-shadow: 0 0 25px rgba(98, 239, 255, 0.26), inset 0 0 24px rgba(98, 239, 255, 0.08);
+      animation: pulse 2.8s ease-in-out infinite;
+    }
+
+    .core-ring2 {
+      width: 190px; height: 190px;
+      border: 1px dashed rgba(98, 239, 255, 0.56);
+      animation: spinSlow 16s linear infinite;
+    }
+
+    .core-ring3 {
+      width: 128px; height: 128px;
+      border: 1px dotted rgba(255, 87, 216, 0.42);
+      animation: spinReverse 9s linear infinite;
+    }
+
+    .core-ring4 {
+      width: 74px; height: 74px;
+      background: radial-gradient(circle, rgba(255,255,255,1), rgba(98,239,255,1) 16%, rgba(18, 135, 255, 0.9) 36%, rgba(6, 12, 18, 0) 80%);
+      box-shadow: 0 0 26px rgba(98, 239, 255, 0.9);
+      animation: radarWave 2.3s ease-out infinite;
+    }
+
+    .core-echo {
+      position: absolute;
+      width: 300px; height: 300px; border-radius: 50%;
+      border: 1px solid rgba(98, 239, 255, 0.12);
+      animation: radarWave 3.4s ease-out infinite;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      background: rgba(98, 239, 255, 0.04);
+      border: 1px solid rgba(98, 239, 255, 0.12);
+      padding: 12px 14px;
+    }
+
+    .metric-label {
+      display: block;
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-shadow: 0 0 12px rgba(98, 239, 255, 0.36);
+    }
+
+    .progress-wrap {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(98, 239, 255, 0.12);
+    }
+
+    .progress-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      width: 100%; height: 8px;
+      border: 1px solid rgba(98, 239, 255, 0.2);
+      background: rgba(98, 239, 255, 0.04);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      width: 0%; height: 100%;
+      background: linear-gradient(90deg, #0c4bff, #2ce8ff, #75ffb2, #f0ff84);
+      box-shadow: 0 0 16px rgba(98, 239, 255, 0.82);
+      transition: width 0.1s linear;
+    }
+
+    .boot-number {
+      margin-top: 10px;
+      color: var(--text);
+      font-size: clamp(32px, 5vw, 60px);
+      font-weight: 900;
+      line-height: 1;
+      text-shadow: 0 0 18px rgba(98, 239, 255, 0.6);
+      text-align: center;
+      letter-spacing: 0.08em;
+    }
+
+    .right-panel {
+      border-left: 1px solid rgba(98, 239, 255, 0.12);
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .logs-header {
+      font-size: 10px;
+      color: var(--cyan);
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .logs {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      background: rgba(98, 239, 255, 0.02);
+      border: 1px solid rgba(98, 239, 255, 0.08);
+      padding: 10px 12px;
+      font-family: "Consolas", "SFMono-Regular", monospace;
+      line-height: 1.7;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .logs > div {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 0;
+      animation: floatOpacity 0.4s ease forwards;
+    }
+
+    .log-time { color: var(--cyan); opacity: 0.7; }
+    .log-type { font-weight: 700; }
+    .log-ok { color: var(--green); }
+    .log-danger { color: var(--red); }
+    .log-warn { color: var(--amber); }
+    .log-info { color: var(--cyan); }
+    .log-system { color: #d6d0ff; }
+
+    .logs::-webkit-scrollbar { width: 7px; }
+    .logs::-webkit-scrollbar-thumb { background: rgba(98, 239, 255, 0.2); border-radius: 10px; }
+    .logs::-webkit-scrollbar-track { background: rgba(98, 239, 255, 0.04); }
+
+    .device-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 80;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(3px);
+    }
+
+    .device-modal.active { display: flex; }
+
+    .device-panel {
+      width: min(560px, 88vw);
+      border: 1px solid rgba(98, 239, 255, 0.32);
+      background: linear-gradient(135deg, rgba(7, 18, 24, 0.9), rgba(2, 8, 12, 0.9));
+      box-shadow: 0 0 42px rgba(98, 239, 255, 0.16);
+      padding: 22px 20px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .device-panel::before {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(98, 239, 255, 0.9), transparent);
+    }
+
+    .device-title {
+      margin-bottom: 12px;
+      color: var(--cyan);
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .device-content {
+      max-height: 420px;
+      overflow-y: auto;
+      font-size: 11px;
+      line-height: 1.8;
+      color: #dfeef9;
+      padding-right: 8px;
+    }
+
+    .device-content b {
+      color: var(--cyan);
+      display: block;
+      margin-top: 8px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .device-content b:first-child { margin-top: 0; }
+
+    .device-content::-webkit-scrollbar { width: 7px; }
+    .device-content::-webkit-scrollbar-thumb { background: rgba(98, 239, 255, 0.22); border-radius: 12px; }
+
+    @media (max-width: 900px) {
+      .login-body { grid-template-columns: 1fr; }
+      .sys-identity { border-right: none; border-bottom: 1px solid rgba(98, 239, 255, 0.12); padding-right: 0; padding-bottom: 16px; }
+      .boot-main { grid-template-columns: 1fr; }
+      .right-panel { border-left: none; border-top: 1px solid rgba(98, 239, 255, 0.12); padding-left: 0; padding-top: 16px; }
+      .logs { max-height: 260px; }
+    }
+
+    @media (max-width: 640px) {
+      .login-panel { padding: 18px 16px 16px; }
+      .brand-block, .top-controls { font-size: 9px; letter-spacing: 0.12em; }
+      .button-row { grid-template-columns: 1fr; }
+      .tab-row { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(90px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrixCanvas"></canvas>
+  <canvas id="fxCanvas"></canvas>
+
+  <div class="grid"></div>
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+  <div class="noise"></div>
+
+  <div class="intro-screen" id="introScreen">
+    <div class="intro-shell">
+      <div class="intro-core">
+        <div class="intro-core-inner"></div>
+      </div>
+      <div class="intro-title">NEXUS // OMEGA</div>
+      <div class="intro-sub">SYSTEM INITIALIZATION</div>
+    </div>
+  </div>
+
+  <div class="login-screen" id="loginScreen">
+    <div class="login-shell">
+      <div class="login-panel">
+        <div class="login-header">
+          <div class="brand"><span class="brand-dot"></span> NEXUS // OMEGA</div>
+          <div class="login-status">Authentication terminal</div>
+        </div>
+
+        <div class="login-body">
+          <div class="sys-identity">
+            <div class="sys-main">CYBER <span class="accent">DEFENSE</span></div>
+            <div class="sys-sub">secure terminal / ai core / access protocol</div>
+            <div class="hud-grid">
+              <div class="hud-item"><span class="hud-label">STATUS</span><span class="hud-value">ONLINE</span></div>
+              <div class="hud-item"><span class="hud-label">LEVEL</span><span class="hud-value">SECURE</span></div>
+              <div class="hud-item"><span class="hud-label">NODE</span><span class="hud-value">OMEGA</span></div>
+              <div class="hud-item"><span class="hud-label">AUTH</span><span class="hud-value">READY</span></div>
+            </div>
+          </div>
+
+          <div class="auth-box">
+            <div class="auth-title">Access module</div>
+
+            <div class="tab-row">
+              <button class="tab-btn active" data-tab="login">Login</button>
+              <button class="tab-btn" data-tab="register">Register</button>
+            </div>
+
+            <div id="loginFormWrap" class="form-wrap active">
+              <div class="field">
+                <label for="loginEmail">Email</label>
+                <input id="loginEmail" type="email" placeholder="neo@matrix.sys" autocomplete="email" />
+              </div>
+              <div class="field">
+                <label for="loginPassword">Password</label>
+                <input id="loginPassword" type="password" placeholder="••••••••••••" autocomplete="current-password" />
+              </div>
+              <div class="message-box">⚠ Local demo only. Production systems require backend encryption, secure session handling, and HTTPS deployment.</div>
+              <div class="button-row">
+                <button class="primary-btn" id="loginBtn">Authenticate</button>
+                <button class="danger-btn" id="clearBtn">Clear</button>
+              </div>
+              <button class="primary-btn google-btn" id="googleBtn">Secure login with Google</button>
+            </div>
+
+            <div id="registerFormWrap" class="form-wrap">
+              <div class="field">
+                <label for="registerName">Full name</label>
+                <input id="registerName" type="text" placeholder="Your Name" autocomplete="name" />
+              </div>
+              <div class="field">
+                <label for="registerEmail">Email</label>
+                <input id="registerEmail" type="email" placeholder="user@domain.sys" autocomplete="email" />
+              </div>
+              <div class="field">
+                <label for="registerPassword">Password</label>
+                <input id="registerPassword" type="password" placeholder="Minimum 8 characters" oninput="window.checkPasswordStrength(this.value)" />
+                <div class="strength"><div class="strength-bar" id="strengthBar"></div></div>
+              </div>
+              <div class="field">
+                <label for="registerConfirm">Confirm password</label>
+                <input id="registerConfirm" type="password" placeholder="Confirm password" />
+              </div>
+              <div class="message-box">⚠ Client-side credential storage is for demo use only. Production systems require backend verification and encrypted persistence.</div>
+              <div class="button-row">
+                <button class="primary-btn" id="registerBtn">Register</button>
+                <button class="ghost-btn" id="cancelBtn">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="boot-screen active" id="bootScreen">
+    <div class="boot-shell">
+      <div class="topbar">
+        <div class="brand-block"><span class="dot"></span> Nexus // Omega</div>
+        <div class="top-controls">
+          <div class="status-pill"><span class="light"></span> <span>System online</span></div>
+        </div>
+      </div>
+
+      <div class="boot-main">
+        <div class="left-panel">
+          <div class="eyebrow">Cinematic boot sequence / 07</div>
+          <div class="title-lab">CORE <span class="accent">AWAKEN</span></div>
+          <div class="subtitle">Initializing next-generation interface</div>
+
+          <div class="core-stage">
+            <div class="core-echo"></div>
+            <div class="core-ring"></div>
+            <div class="core-ring2"></div>
+            <div class="core-ring3"></div>
+            <div class="core-ring4"></div>
+          </div>
+
+          <div class="metrics">
+            <div class="metric"><span class="metric-label">Core</span><span class="metric-value" id="coreStatus">STANDBY</span></div>
+            <div class="metric"><span class="metric-label">Link</span><span class="metric-value" id="linkStatus">SECURE</span></div>
+            <div class="metric"><span class="metric-label">Memory</span><span class="metric-value" id="memStatus">--%</span></div>
+            <div class="metric"><span class="metric-label">Uptime</span><span class="metric-value" id="uptimeStatus">00:00:00</span></div>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-head"><span>Boot progress</span><span id="progressPercent">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="boot-number" id="bootNumber">00</div>
+          </div>
+        </div>
+
+        <div class="right-panel">
+          <div class="logs-header">Live system telemetry</div>
+          <div class="logs" id="logs"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="device-modal" id="deviceModal">
+    <div class="device-panel">
+      <div class="device-title">Device verification</div>
+      <div class="device-content" id="deviceContent"></div>
+      <div class="button-row" style="margin-top: 18px;">
+        <button class="primary-btn" style="grid-column: 1 / -1;" id="deviceCloseBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const STORAGE_KEYS = { users: 'nexusOmegaUsers', currentUser: 'nexusOmegaCurrentUser' };
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.users) || '{}');
+      let currentUser = (() => {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEYS.currentUser) || 'null');
+        } catch {
+          return null;
+        }
+      })();
+
+      const state = {
+        introPhase: true,
+        bootStarted: false,
+        bootStartTs: null,
+        lastLogIndex: -1,
+        loginMode: 'login',
+        audioUnlocked: false,
+        audio: null,
+        bootSequenceRunning: false,
+      };
+
+      const selectors = {
+        introScreen: document.getElementById('introScreen'),
+        loginScreen: document.getElementById('loginScreen'),
+        bootScreen: document.getElementById('bootScreen'),
+        logs: document.getElementById('logs'),
+        progressFill: document.getElementById('progressFill'),
+        progressPercent: document.getElementById('progressPercent'),
+        bootNumber: document.getElementById('bootNumber'),
+        coreStatus: document.getElementById('coreStatus'),
+        linkStatus: document.getElementById('linkStatus'),
+        memStatus: document.getElementById('memStatus'),
+        uptimeStatus: document.getElementById('uptimeStatus'),
+        deviceModal: document.getElementById('deviceModal'),
+        deviceContent: document.getElementById('deviceContent'),
+        loginEmail: document.getElementById('loginEmail'),
+        loginPassword: document.getElementById('loginPassword'),
+        registerName: document.getElementById('registerName'),
+        registerEmail: document.getElementById('registerEmail'),
+        registerPassword: document.getElementById('registerPassword'),
+        registerConfirm: document.getElementById('registerConfirm'),
+        strengthBar: document.getElementById('strengthBar'),
+      };
+
+      function saveUsers() {
+        localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users));
+      }
+
+      function saveCurrentUser() {
+        if (currentUser) {
+          localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(currentUser));
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.currentUser);
+        }
+      }
+
+      function hashPassword(pass) {
+        let h = 0;
+        for (let i = 0; i < pass.length; i++) {
+          h = ((h << 5) - h) + pass.charCodeAt(i);
+          h |= 0;
+        }
+        return 'hash_' + Math.abs(h).toString(36);
+      }
+
+      function checkPasswordStrength(value) {
+        let score = 0;
+        if (value.length >= 8) score += 35;
+        if (/[A-Z]/.test(value)) score += 20;
+        if (/[a-z]/.test(value)) score += 20;
+        if (/\d/.test(value)) score += 15;
+        if (/[^A-Za-z0-9]/.test(value)) score += 10;
+        const pct = Math.min(score, 100);
+        selectors.strengthBar.style.width = pct + '%';
+      }
+
+      function showTab(mode) {
+        state.loginMode = mode;
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.tab === mode);
+        });
+        document.getElementById('loginFormWrap').classList.toggle('active', mode === 'login');
+        document.getElementById('registerFormWrap').classList.toggle('active', mode === 'register');
+      }
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => showTab(btn.dataset.tab));
+      });
+
+      function playTone(kind = 'login') {
+        if (!state.audioUnlocked || !window.AudioContext || !document.body) return;
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+
+        if (!state.audio) {
+          state.audio = new AudioCtx();
+        }
+
+        const ctx = state.audio;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc.type = kind === 'error' ? 'sawtooth' : kind === 'warning' ? 'triangle' : 'sine';
+        osc.frequency.value = kind === 'boot' ? 190 : kind === 'warning' ? 220 : 330;
+        filter.type = 'lowpass';
+        filter.frequency.value = 1600;
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.06, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      }
+
+      function unlockAudio() {
+        if (state.audioUnlocked) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          if (!state.audio) state.audio = new AudioCtx();
+          if (state.audio.state === 'suspended') state.audio.resume();
+        }
+        state.audioUnlocked = true;
+      }
+
+      document.addEventListener('pointerdown', unlockAudio, { once: true });
+      document.addEventListener('keydown', unlockAudio, { once: true });
+
+      function deviceInfoMarkup() {
+        const info = getDeviceInfo();
+        return `
+          <b>Hardware</b>
+          Platform: ${info.platform}<br>
+          User Agent: ${info.userAgent}<br>
+          CPU Cores: ${info.cores}<br>
+          Device Memory: ${info.memory}<br>
+          Touch Points: ${info.touchPoints}<br>
+          <b>Display</b>
+          Screen: ${info.screenWidth} x ${info.screenHeight}<br>
+          Device Pixel Ratio: ${info.pixelRatio}<br>
+          Color Depth: ${info.colorDepth}<br>
+          <b>Network</b>
+          Online: ${info.online}<br>
+          Connection: ${info.connection}<br>
+          Language: ${info.language}<br>
+          Timezone: ${info.timezone}<br>
+          <b>Storage</b>
+          LocalStorage: ${info.localStorage ? 'Enabled' : 'Disabled'}<br>
+          SessionStorage: ${info.sessionStorage ? 'Enabled' : 'Disabled'}<br>
+          IndexedDB: ${info.indexedDB ? 'Enabled' : 'Disabled'}<br>
+          Cookies: ${info.cookiesEnabled ? 'Enabled' : 'Disabled'}<br>
+          <b>Browser</b>
+          Vendor: ${info.vendor}<br>
+          Languages: ${info.languages}<br>
+          Platform: ${info.platform}<br>
+        `;
+      }
+
+      function getDeviceInfo() {
+        const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+        return {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform || 'Unknown',
+          language: navigator.language || 'Unknown',
+          languages: navigator.languages?.join(', ') || 'Unknown',
+          screenWidth: window.screen.width,
+          screenHeight: window.screen.height,
+          pixelRatio: window.devicePixelRatio || 1,
+          colorDepth: window.screen.colorDepth || 'Unknown',
+          cores: navigator.hardwareConcurrency || 'Unknown',
+          memory: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'Unknown',
+          connection: conn ? (conn.effectiveType || conn.type || 'Unknown') : 'Unknown',
+          online: navigator.onLine ? 'Online' : 'Offline',
+          cookiesEnabled: navigator.cookieEnabled,
+          touchPoints: navigator.maxTouchPoints || 0,
+          localStorage: !!window.localStorage,
+          sessionStorage: !!window.sessionStorage,
+          indexedDB: !!window.indexedDB,
+          vendor: navigator.vendor || 'Unknown',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown',
+        };
+      }
+
+      function openDeviceModal() {
+        selectors.deviceContent.innerHTML = deviceInfoMarkup();
+        selectors.deviceModal.classList.add('active');
+      }
+
+      function closeDeviceModal() {
+        selectors.deviceModal.classList.remove('active');
+      }
+
+      document.getElementById('deviceCloseBtn').addEventListener('click', closeDeviceModal);
+
+      function authMessage(msg, isWarning = false) {
+        const box = document.querySelector('.message-box');
+        if (box) { box.textContent = msg; box.style.borderColor = isWarning ? 'rgba(255, 202, 99, 0.8)' : 'rgba(98, 239, 255, 0.8)'; }
+      }
+
+      function handleLogin() {
+        const email = selectors.loginEmail.value.trim();
+        const pw = selectors.loginPassword.value;
+        if (!email || !pw) {
+          authMessage('Missing credentials. Please verify email and password.', true);
+          playTone('warning');
+          return;
+        }
+        const saved = users[email];
+        if (!saved) {
+          authMessage('Identity not found. Please register first or use a valid account.', true);
+          playTone('error');
+          return;
+        }
+        if (saved.passwordHash !== hashPassword(pw)) {
+          authMessage('Authentication failure. Session rejected.', true);
+          playTone('error');
+          return;
+        }
+
+        currentUser = { email, name: saved.name, provider: 'local', loggedAt: new Date().toISOString() };
+        saveCurrentUser();
+        authMessage('Access granted. Establishing secure channel...');
+        playTone('boot');
+        setTimeout(() => showMainSystem(), 650);
+      }
+
+      function handleRegister() {
+        const name = selectors.registerName.value.trim();
+        const email = selectors.registerEmail.value.trim();
+        const pw = selectors.registerPassword.value;
+        const confirm = selectors.registerConfirm.value;
+
+        if (!name || !email || !pw) {
+          authMessage('All fields are required to register.', true);
+          playTone('warning');
+          return;
+        }
+        if (pw.length < 8) {
+          authMessage('Password length must be at least 8 characters.', true);
+          playTone('warning');
+          return;
+        }
+        if (pw !== confirm) {
+          authMessage('Passwords do not match.', true);
+          playTone('warning');
+          return;
+        }
+        if (users[email]) {
+          authMessage('Account already exists for this identity.', true);
+          playTone('warning');
+          return;
+        }
+
+        users[email] = { name, passwordHash: hashPassword(pw), createdAt: new Date().toISOString() };
+        saveUsers();
+        authMessage('Registration complete. Please authenticate to continue.');
+        playTone('boot');
+        showTab('login');
+      }
+
+      function handleGoogleLogin() {
+        authMessage('Google secure token handshake initiated. Demo authorization loaded.');
+        currentUser = { email: 'google-user@nexus.omega', name: 'Google User', provider: 'google', loggedAt: new Date().toISOString() };
+        saveCurrentUser();
+        playTone('boot');
+        setTimeout(() => showMainSystem(), 700);
+      }
+
+      function handleLogout() {
+        currentUser = null;
+        saveCurrentUser();
+        state.bootSequenceRunning = false;
+        selectors.loginScreen.classList.add('active');
+        selectors.bootScreen.classList.remove('active');
+        selectors.introScreen.classList.add('hidden');
+        selectors.loginPassword.value = '';
+        selectors.loginEmail.value = '';
+        selectors.registerName.value = '';
+        selectors.registerEmail.value = '';
+        selectors.registerPassword.value = '';
+        selectors.registerConfirm.value = '';
+        checkPasswordStrength('');
+      }
+
+      function showMainSystem() {
+        selectors.loginScreen.classList.remove('active');
+        selectors.bootScreen.classList.remove('active');
+        selectors.introScreen.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        window.dispatchEvent(new Event('mainSystemReady'));
+      }
+
+      document.getElementById('loginBtn').addEventListener('click', handleLogin);
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        selectors.loginEmail.value = '';
+        selectors.loginPassword.value = '';
+        authMessage('Input buffers cleared.');
+      });
+      document.getElementById('googleBtn').addEventListener('click', handleGoogleLogin);
+      document.getElementById('registerBtn').addEventListener('click', handleRegister);
+      document.getElementById('cancelBtn').addEventListener('click', () => showTab('login'));
+
+      function startBootSequence() {
+        if (state.bootStarted) return;
+        state.bootStarted = true;
+        state.bootStartTs = performance.now();
+        state.bootSequenceRunning = true;
+        selectors.bootScreen.classList.add('active');
+        selectors.loginScreen.classList.remove('active');
+        selectors.introScreen.classList.add('hidden');
+        renderBootLogs();
+        requestAnimationFrame(animateBoot);
+      }
+
+      function renderBootLogs() {
+        const list = buildCatalog();
+        selectors.logs.innerHTML = '';
+        list.slice(0, 18).forEach((item, i) => appendLog(item, i));
+      }
+
+      function buildCatalog() {
+        const categories = ['CORE', 'NET', 'SEC', 'SYS', 'MEM', 'GPU', 'AI', 'AUTH', 'HUD', 'SCAN'];
+        const actions = [
+          'INITIALIZING', 'VERIFYING', 'SCANNING', 'SYNCING', 'CALIBRATING', 'STABILIZING', 'VALIDATING', 'ESTABLISHING',
+          'LOADING', 'SYNCHRONIZING', 'MOUNTING', 'LOCKING', 'HANDSHAKING', 'BROADCASTING', 'SECURING', 'COMPILING',
+          'MIRRORING', 'DERIVING', 'RECONCILING', 'PULSE', 'BUFFERING', 'ANALYZING', 'INDEXING', 'THROTTLING'
+        ];
+        const nouns = [
+          'KERNEL', 'VECTOR', 'ALGORITHM', 'SERVICE', 'GRID', 'GRAPH', 'CORE', 'SIGNAL', 'CHANNEL', 'TUNNEL',
+          'CACHE', 'MODEL', 'PIPELINE', 'MODULE', 'INTERFACE', 'HUD', 'KEYRING', 'ARRAY', 'RELAY', 'TOKEN',
+          'RADAR', 'SYNTH', 'FRAMEBUFFER', 'NEXUS', 'LAYER', 'CIRCUIT', 'BIOMETRIC', 'DRONE', 'MATRIX'
+        ];
+        const states = ['ONLINE', 'READY', 'STABLE', 'SCANNING', 'VERIFIED', 'SYNCED', 'VALIDATED', 'ACTIVE', 'LOCKED'];
+        const arr = [];
+        for (let i = 0; i < 600; i++) {
+          const cat = categories[i % categories.length];
+          const a = actions[(i * 3) % actions.length];
+          const n = nouns[(i * 7 + 2) % nouns.length];
+          const s = states[(i * 5 + 1) % states.length];
+          const l = [
+            `[${String(i + 1).padStart(4, '0')}]`,
+            ` [${cat}]`,
+            ` ${a} ${n}`,
+            ` status=${s}`,
+            ` signal=${((i * 41) % 1000) / 10}db`,
+            ` ops=${(i * 13) % 9999}`,
+          ].join('');
+          arr.push(l);
+        }
+        return arr;
+      }
+
+      function appendLog(line, index) {
+        const row = document.createElement('div');
+        const stamp = document.createElement('span');
+        stamp.className = 'log-time';
+        stamp.textContent = `[${new Date().toLocaleTimeString('en-GB', { hour12: false })}]`;
+
+        const payload = document.createElement('span');
+        payload.textContent = line;
+
+        let type = 'log-info';
+        if (index % 15 === 0) type = 'log-warn';
+        if (index % 33 === 0) type = 'log-danger';
+        if (index % 21 === 0) type = 'log-ok';
+        if (line.includes('SEC') || line.includes('AUTH') || line.includes('CORE')) type = 'log-system';
+
+        payload.className = type;
+        row.appendChild(stamp);
+        row.appendChild(payload);
+        selectors.logs.prepend(row);
+        while (selectors.logs.children.length > 28) selectors.logs.removeChild(selectors.logs.lastChild);
+      }
+
+      function animateBoot(timestamp) {
+        if (!state.bootSequenceRunning) return;
+        const elapsed = timestamp - state.bootStartTs;
+        const progress = Math.min(100, Math.floor(elapsed / 60));
+        selectors.progressFill.style.width = progress + '%';
+        selectors.progressPercent.textContent = progress + '%';
+        selectors.bootNumber.textContent = String(progress).padStart(2, '0');
+
+        const memoryValue = Math.min(99, 18 + Math.floor(progress * 0.72));
+        selectors.memStatus.textContent = memoryValue + '%';
+        selectors.coreStatus.textContent = progress < 25 ? 'BOOTING' : progress < 45 ? 'SYNCING' : progress < 75 ? 'SCANNING' : progress < 92 ? 'VERIFYING' : progress < 100 ? 'AUTHENTICATING' : 'ONLINE';
+        selectors.linkStatus.textContent = progress < 55 ? 'SYNCED' : progress < 90 ? 'SECURED' : 'LOCKED';
+
+        if (progress >= 100) {
+          selectors.coreStatus.textContent = 'ONLINE';
+          selectors.linkStatus.textContent = 'SECURE';
+          selectors.memStatus.textContent = '98%';
+          selectors.progressPercent.textContent = '100%';
+          selectors.progressFill.style.width = '100%';
+          selectors.bootNumber.textContent = '100';
+          state.bootSequenceRunning = false;
+          setTimeout(() => {
+            selectors.loginScreen.classList.add('active');
+            selectors.bootScreen.classList.remove('active');
+            selectors.introScreen.classList.add('hidden');
+            playTone('boot');
+          }, 700);
+          return;
+        }
+
+        const logIndex = Math.floor(progress / 4);
+        if (logIndex !== state.lastLogIndex) {
+          state.lastLogIndex = logIndex;
+          const catalog = buildCatalog();
+          const item = catalog[(logIndex * 7 + (progress % 17)) % catalog.length];
+          appendLog(item, logIndex);
+          if (logIndex % 7 === 0) playTone('boot');
+          if (logIndex % 17 === 0) playTone('warning');
+        }
+
+        requestAnimationFrame(animateBoot);
+      }
+
+      function updateUptime() {
+        if (!state.bootStartTs) return;
+        const elapsed = Math.floor((performance.now() - state.bootStartTs) / 1000);
+        const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+        const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
+        selectors.uptimeStatus.textContent = `${h}:${m}:${s}`;
+      }
+
+      setInterval(updateUptime, 1000);
+
+      function initSystem() {
+        selectors.loginScreen.classList.remove('active');
+        selectors.bootScreen.classList.add('active');
+        selectors.introScreen.classList.remove('hidden');
+        setTimeout(() => {
+          selectors.introScreen.classList.add('hidden');
+          selectors.loginScreen.classList.remove('active');
+          if (currentUser) {
+            selectors.bootScreen.classList.add('active');
+            startBootSequence();
+            setTimeout(() => {
+              selectors.bootScreen.classList.remove('active');
+              document.body.style.overflow = 'auto';
+            }, 5000);
+          } else {
+            startBootSequence();
+          }
+        }, 2200);
+      }
+
+      if (currentUser) {
+        document.getElementById('loginScreen').classList.remove('active');
+        document.getElementById('bootScreen').classList.add('active');
+      }
+
+      initSystem();
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          document.title = 'NEXUS // OMEGA // STANDBY';
+        } else {
+          document.title = 'NEXUS // OMEGA';
+        }
+      });
+
+      function setupRuntime() {
+        const matrixCanvas = document.getElementById('matrixCanvas');
+        const fxCanvas = document.getElementById('fxCanvas');
+        const ctxM = matrixCanvas.getContext('2d');
+        const ctxF = fxCanvas.getContext('2d');
+
+        function resizeCanvas() {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          matrixCanvas.width = innerWidth * dpr;
+          matrixCanvas.height = innerHeight * dpr;
+          fxCanvas.width = innerWidth * dpr;
+          fxCanvas.height = innerHeight * dpr;
+          ctxM.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctxF.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        let particles = [];
+        let glyphs = '<?php echo ""; ?>';
+        glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/\\[]{}!@#$%^&*()_+~`|;:,.?';
+
+        function initParticles() {
+          const count = Math.min(240, Math.max(90, Math.floor(innerWidth / 8)));
+          particles = new Array(count).fill(0).map(() => ({
+            x: Math.random() * innerWidth,
+            y: Math.random() * innerHeight,
+            speed: 0.6 + Math.random() * 1.9,
+            size: Math.random() * 2.2 + 0.8,
+            alpha: Math.random() * 0.7 + 0.18,
+          }));
+        }
+
+        function drawMatrix() {
+          ctxM.fillStyle = 'rgba(2, 8, 12, 0.16)';
+          ctxM.fillRect(0, 0, innerWidth, innerHeight);
+
+          for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.y += p.speed;
+            if (p.y > innerHeight) {
+              p.y = -20;
+              p.x = Math.random() * innerWidth;
+            }
+
+            const char = glyphs[Math.floor(Math.random() * glyphs.length)];
+            ctxM.fillStyle = `rgba(98, 239, 255, ${p.alpha})`;
+            ctxM.font = `${p.size * 12}px monospace`;
+            ctxM.fillText(char, p.x, p.y);
+          }
+          requestAnimationFrame(drawMatrix);
+        }
+
+        function drawFx() {
+          ctxF.clearRect(0, 0, innerWidth, innerHeight);
+          const cx = innerWidth * 0.5;
+          const cy = innerHeight * 0.5;
+
+          for (let i = 0; i < 16; i++) {
+            const angle = (Math.PI * 2 / 16) * i + performance.now() * 0.0004;
+            const len = 110 + (i % 5) * 24;
+            const x1 = cx + Math.cos(angle) * 120;
+            const y1 = cy + Math.sin(angle) * 120;
+            const x2 = cx + Math.cos(angle) * (120 + len);
+            const y2 = cy + Math.sin(angle) * (120 + len);
+
+            ctxF.beginPath();
+            ctxF.moveTo(x1, y1);
+            ctxF.lineTo(x2, y2);
+            ctxF.strokeStyle = `rgba(98, 239, 255, ${0.12 + i * 0.016})`;
+            ctxF.stroke();
+          }
+
+          const r = 280 + Math.sin(performance.now() * 0.0016) * 18;
+          ctxF.beginPath();
+          ctxF.arc(cx, cy, r, 0, Math.PI * 2);
+          ctxF.strokeStyle = 'rgba(98, 239, 255, 0.12)';
+          ctxF.stroke();
+
+          requestAnimationFrame(drawFx);
+        }
+
+        resizeCanvas();
+        initParticles();
+        drawMatrix();
+        drawFx();
+        window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
+      }
+
+      setupRuntime();
+
+      if (!currentUser) {
+        selectors.loginScreen.classList.add('active');
+      }
+    })();
+  </script>
+</body>
+</html>
